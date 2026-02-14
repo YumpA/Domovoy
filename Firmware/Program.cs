@@ -8,14 +8,16 @@ using Domovoy.Core.Interfaces.IRepository;
 using Domovoy.Core.Models;
 using Domovoy.Core.Services;
 using Domovoy.Infrastructure;
+using Domovoy.Interfaces;
 using Infrastructure;
+using Infrastructure.Persistence;
 using RelaySwitch = Domovoy.Devices.RelaySwitch;
 
 namespace Domovoy.Firmware
 {
 	public class Program
 	{
-		private static IDeviceRepository _repository;
+		private static IObservableRepository _repository;
 		private static INotificationService _notificationService;
 		private static IDeviceService _deviceService;
 		private static RelaySwitch _livingRoomLight;
@@ -94,7 +96,7 @@ namespace Domovoy.Firmware
 			Console.WriteLine("=== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ ===");
 
 			// 1. Сервисы инфраструктуры
-			_repository = new InMemoryDeviceRepository();
+			_repository = new ObservableInMemoryDeviceRepository();
 			_notificationService = new ConsoleNotificationService();
 			_deviceService = new DeviceService(_repository, _notificationService);
 
@@ -105,13 +107,13 @@ namespace Domovoy.Firmware
 				"light_living_room",
 				"Основной свет гостиной",
 				"Гостиная",
-				22);
+				21);
 
 			_bedroomLight = new RelaySwitch(
 				"light_bedroom",
 				"Свет спальни",
 				"Спальня",
-				21);
+				20);
 
 			// 3. Регистрируем устройства в репозитории
 			RegisterDevice(_livingRoomLight);
@@ -181,7 +183,7 @@ namespace Domovoy.Firmware
 				TestWithDeviceService();
 
 				// Тест напрямую через устройства
-				TestDirectDeviceControl();
+				//TestDirectDeviceControl();
 
 				// Показываем статистику каждые 3 цикла
 				if (cycle % 3 == 0)

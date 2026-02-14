@@ -19,7 +19,8 @@
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" Condition="Exists('$(NanoFrameworkProjectSystemPath)NFProjectSystem.props')" />
   <ItemGroup>
     <Compile Include="Class1.cs" />
-    <Compile Include="InMemoryDeviceRepository.cs" />
+    <Compile Include="Persistence\InMemoryDeviceRepository.cs" />
+    <Compile Include="Persistence\ObservableInMemoryDeviceRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ConsoleNotificationService.cs" />
   </ItemGroup>
