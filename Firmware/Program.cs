@@ -25,55 +25,6 @@ namespace Domovoy.Firmware
 
 		public static void Main()
 		{
-			/*// ============ ДИАГНОСТИКА РЕЛЕ ============
-			Console.WriteLine("=== ДИАГНОСТИКА РЕЛЕ ===");
-
-			// Укажите правильный номер пина, к которому подключено реле
-			int testPin = 21;   // ПОМЕНЯЙТЕ, если используете другой пин
-
-			using (var gpio = new GpioController())
-			{
-				try
-				{
-					gpio.OpenPin(testPin, PinMode.Output);
-					Console.WriteLine($"Пин {testPin} открыт.");
-
-					// Тест 1: HIGH -> ждём -> LOW
-					Console.WriteLine("Устанавливаем HIGH (попытка 1)...");
-					gpio.Write(testPin, PinValue.High);
-					Thread.Sleep(2000);
-					Console.WriteLine("Устанавливаем LOW...");
-					gpio.Write(testPin, PinValue.Low);
-					Thread.Sleep(1000);
-
-					// Тест 2: LOW -> ждём -> HIGH (если реле работает инверсно)
-					Console.WriteLine("Устанавливаем LOW (попытка 2)...");
-					gpio.Write(testPin, PinValue.Low);
-					Thread.Sleep(2000);
-					Console.WriteLine("Устанавливаем HIGH...");
-					gpio.Write(testPin, PinValue.High);
-					Thread.Sleep(1000);
-
-					// Тест 3: быстрое мигание
-					Console.WriteLine("Мигаем 3 раза...");
-					for (int i = 0; i < 3; i++)
-					{
-						gpio.Write(testPin, PinValue.High);
-						Thread.Sleep(200);
-						gpio.Write(testPin, PinValue.Low);
-						Thread.Sleep(200);
-					}
-
-					gpio.ClosePin(testPin);
-					Console.WriteLine("Диагностика завершена.");
-				}
-				catch (Exception ex)
-				{
-					Console.WriteLine($"Ошибка при работе с пином {testPin}: {ex.Message}");
-				}
-			}
-			// ============ КОНЕЦ ДИАГНОСТИКИ ============*/
-
 			Console.WriteLine("\n╔══════════════════════════════╗");
 			Console.WriteLine("║     ДОМОВОЙ v0.2.0          ║");
 			Console.WriteLine("║   Многослойная архитектура  ║");
@@ -107,13 +58,15 @@ namespace Domovoy.Firmware
 				"light_living_room",
 				"Основной свет гостиной",
 				"Гостиная",
-				21);
+				21,
+				_repository);
 
 			_bedroomLight = new RelaySwitch(
 				"light_bedroom",
 				"Свет спальни",
 				"Спальня",
-				20);
+				20,
+				_repository);
 
 			// 3. Регистрируем устройства в репозитории
 			RegisterDevice(_livingRoomLight);

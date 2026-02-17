@@ -31,12 +31,13 @@ namespace Domovoy.Devices
 		public DeviceStatus Status => _status;
 		public bool IsOn => _isOn;
 
-		public RelaySwitch(string id, string name, string location, int pin)
+		public RelaySwitch(string id, string name, string location, int pin, IObservableRepository repository)
 		{
 			_id = id ?? throw new ArgumentNullException(nameof(id));
 			_name = name ?? $"Реле {id}";
 			_location = location ?? "Неизвестно";
 			_pin = pin;
+			_repository = repository;
 			_gpio = new GpioController();
 		}
 
