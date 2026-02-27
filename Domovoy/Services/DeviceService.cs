@@ -11,11 +11,13 @@ namespace Domovoy.Core.Services
 	{
 		private readonly IDeviceRepository _repository;
 		private readonly INotificationService _notificationService;
+		private readonly Hashtable _devices;
 
-		public DeviceService(IDeviceRepository repository, INotificationService notificationService)
+		public DeviceService(IDeviceRepository repository, INotificationService notificationService, Hashtable devices)
 		{
 			_repository = repository;
 			_notificationService = notificationService;
+			_devices = devices ?? new Hashtable();
 		}
 
 		public bool TurnOnDevice(string deviceId, string initiatedBy)
@@ -35,10 +37,26 @@ namespace Domovoy.Core.Services
 					return false;
 				}
 
-				if (device.Status == DeviceStatus.Online)
+/*				if (device.Status == DeviceStatus.Online)
 				{
 					Console.WriteLine($"Устройство {deviceId} уже включено");
 					return true;
+				}*/
+
+				IDevice physicalDevice = (IDevice)_devices[deviceId];
+				if (physicalDevice == null)
+				{
+					Console.WriteLine("ус-во не найдено");
+					return false;
+				}
+
+				if (physicalDevice is ISwitchable switchable)
+				{
+					if (!switchable.TurnOn())
+					{
+						Console.WriteLine("не удалось включить ус-во");
+						return false;
+					}					
 				}
 
 				// Обновляем статус
@@ -82,6 +100,27 @@ namespace Domovoy.Core.Services
 				{
 					Console.WriteLine($"Устройство {deviceId} уже выключено");
 					return true;
+				}
+
+				IDevice physicalDevice = (IDevice)_devices[deviceId];
+				if (physicalDevice == null)
+				{
+					Console.WriteLine("ус-во не найдено");
+					return false;
+				}
+
+				if (physicalDevice is ISwitchable switchable)
+				{
+					if (!switchable.TurnOff())
+					{
+						Console.WriteLine("не удалось включить ус-во");
+						return false;
+					}
+					else
+					{
+						Console.WriteLine("Ус-во не поддерживает включение");
+						return false;
+					}
 				}
 
 				var oldStatus = device.Status;

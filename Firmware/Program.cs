@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Device.Gpio;
 using System.Threading;
 using Domovoy.Core;
@@ -93,10 +94,12 @@ namespace Domovoy.Firmware
 		{
 			Console.WriteLine("=== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ ===");
 
+			var devices = new Hashtable();
+
 			// 1. Сервисы инфраструктуры
+
 			_repository = new InMemoryDeviceRepository();
-			_notificationService = new ConsoleNotificationService();
-			_deviceService = new DeviceService(_repository, _notificationService);
+			_notificationService = new ConsoleNotificationService();			
 
 			Console.WriteLine("✓ Сервисы инициализированы");
 
@@ -105,13 +108,18 @@ namespace Domovoy.Firmware
 				"light_living_room",
 				"Основной свет гостиной",
 				"Гостиная",
-				22);
+				21);
 
 			_bedroomLight = new RelaySwitch(
 				"light_bedroom",
 				"Свет спальни",
 				"Спальня",
-				21);
+				22);
+
+			devices[_livingRoomLight.Id] = _livingRoomLight;
+			devices[_bedroomLight.Id] = _bedroomLight;
+
+			_deviceService = new DeviceService(_repository, _notificationService, devices);
 
 			// 3. Регистрируем устройства в репозитории
 			RegisterDevice(_livingRoomLight);
@@ -181,7 +189,7 @@ namespace Domovoy.Firmware
 				TestWithDeviceService();
 
 				// Тест напрямую через устройства
-				TestDirectDeviceControl();
+				//TestDirectDeviceControl();
 
 				// Показываем статистику каждые 3 цикла
 				if (cycle % 3 == 0)
