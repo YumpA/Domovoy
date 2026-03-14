@@ -101,8 +101,8 @@ namespace Domovoy.Firmware
 		{
 			Console.WriteLine("=== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ ===");
 
-			string ssid = "Intersvyaz_AB8E";
-			string password = "34520291";
+			string ssid = "enter wifi";
+			string password = "enterr password";
 
 			if (!WifiHelper.ConnectToWifi(ssid, password)) 
 			{
