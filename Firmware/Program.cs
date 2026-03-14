@@ -1,15 +1,20 @@
-﻿using System;
-using System.Collections;
-using System.Device.Gpio;
-using System.Threading;
-using Domovoy.Core;
+﻿using Domovoy.Core;
 using Domovoy.Core.Enums;
 using Domovoy.Core.Interfaces;
 using Domovoy.Core.Interfaces.IRepository;
 using Domovoy.Core.Models;
 using Domovoy.Core.Services;
 using Domovoy.Infrastructure;
+using Domovoy.Infrastructure.Web;
 using Infrastructure;
+using Infrastructure.Network;
+using Infrastructure.Web;
+using nanoFramework.Networking;
+using nanoFramework.WebServer;
+using System;
+using System.Collections;
+using System.Device.Gpio;
+using System.Threading;
 using RelaySwitch = Domovoy.Devices.RelaySwitch;
 
 namespace Domovoy.Firmware
@@ -21,6 +26,8 @@ namespace Domovoy.Firmware
 		private static IDeviceService _deviceService;
 		private static RelaySwitch _livingRoomLight;
 		private static RelaySwitch _bedroomLight;
+
+		private static WebServer _webServer;
 
 		public static void Main()
 		{
@@ -74,7 +81,7 @@ namespace Domovoy.Firmware
 			// ============ КОНЕЦ ДИАГНОСТИКИ ============*/
 
 			Console.WriteLine("\n╔══════════════════════════════╗");
-			Console.WriteLine("║     ДОМОВОЙ v0.2.0          ║");
+			Console.WriteLine("║     ДОМОВОЙ v0.2.1          ║");
 			Console.WriteLine("║   Многослойная архитектура  ║");
 			Console.WriteLine("╚══════════════════════════════╝\n");
 
@@ -93,6 +100,14 @@ namespace Domovoy.Firmware
 		private static void InitializeSystem()
 		{
 			Console.WriteLine("=== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ ===");
+
+			string ssid = "Intersvyaz_AB8E";
+			string password = "34520291";
+
+			if (!WifiHelper.ConnectToWifi(ssid, password)) 
+			{
+				Console.WriteLine("Только локальное управление");
+			}
 
 			var devices = new Hashtable();
 
@@ -131,6 +146,85 @@ namespace Domovoy.Firmware
 
 			Console.WriteLine("\n=== СИСТЕМА ГОТОВА ===");
 			PrintSystemStatus();
+
+			StartWebServer();
+		}
+
+		private static void StartWebServer()
+		{
+			try
+			{
+				//создаю веб-сервер и указываю, где посмотреть роуты, конкретно здесь - ApiController
+				_webServer = new WebServer(80, HttpProtocol.Http);
+
+				_webServer.CommandReceived += ServerCommandReceived;
+
+				_webServer.Start();
+				Console.WriteLine($"✓ Веб-сервер запущен на порту 80");
+
+				Thread.Sleep(Timeout.Infinite);
+			}
+
+			catch (Exception ex)
+			{
+				Console.WriteLine($"✗ Ошибка запуска веб-сервера: {ex.Message}");
+			}
+		}
+
+		private static void ServerCommandReceived(object source, WebServerEventArgs e)
+		{
+			//сделал простой вариант с ивентом и ручными роутами, позже поменяю на DI
+
+			string url = e.Context.Request.RawUrl;
+			//Console.WriteLine(url);
+			string[] parts = url.Split('/');
+
+			if (url.Length == 4)
+				WebServer.OutputAsStream(e.Context.Response, "{\"error\":\"Invalid URL format\"}");
+
+			string command = parts[2]; // /on/off/toggle/status
+			string deviceId = parts[3]; // /api/{command}/{deviceId}
+
+			bool result = false;
+			string message = "";
+
+			switch (command.ToLower())
+			{
+				case "on":
+					result = _deviceService.TurnOnDevice(deviceId, "web_user");
+					message = result ? "Ус-во включено" : "Ошибка включения";
+					break;
+
+				case "off":
+					result = _deviceService.TurnOffDevice(deviceId, "web_user");
+					message = result ? "Ус-во выключено" : "Ошибка выключения";
+					break;
+
+				case "toggle":
+					result = _deviceService.ToggleDevice(deviceId, "web_user");
+					message = result ? "Ус-во переключено" : "Ошибка переключения";
+					break;
+
+				case "status":
+					var info = _deviceService.GetDeviceInfo(deviceId);
+					if (info != null)
+					{
+						message = JsonHelper.Serialize(info);
+						break;
+					}
+					else
+					{
+						message = "Ошибка получения информации";
+						break;
+					}	
+
+				default:
+					WebServer.OutputAsStream(e.Context.Response, "{\"error\":\"Неизвестная команда\"}");
+					break;
+			}
+
+			string responce = $"{{\"success\":{result.ToString().ToLower()},\"message\":\"{message}\"}}";
+			WebServer.OutputAsStream(e.Context.Response, responce);
 		}
 
 		private static void RegisterDevice(IDevice device)
@@ -160,7 +254,7 @@ namespace Domovoy.Firmware
 				var data = _repository.GetById(device.Id);
 				if (data != null)
 				{
-					data.Status = DeviceStatus.Online;
+					//data.Status = DeviceStatus.Online;
 					data.LastUpdated = DateTime.UtcNow;
 					_repository.Update(data);
 				}
@@ -186,7 +280,7 @@ namespace Domovoy.Firmware
 				Console.WriteLine($"\n───── ЦИКЛ #{cycle} ─────");
 
 				// Тест через DeviceService (бизнес-логика)
-				TestWithDeviceService();
+				//TestWithDeviceService();
 
 				// Тест напрямую через устройства
 				//TestDirectDeviceControl();

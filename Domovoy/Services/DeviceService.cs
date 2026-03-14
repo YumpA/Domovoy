@@ -37,11 +37,11 @@ namespace Domovoy.Core.Services
 					return false;
 				}
 
-/*				if (device.Status == DeviceStatus.Online)
+				if (device.Status == DeviceStatus.Online)
 				{
 					Console.WriteLine($"Устройство {deviceId} уже включено");
 					return true;
-				}*/
+				}
 
 				IDevice physicalDevice = (IDevice)_devices[deviceId];
 				if (physicalDevice == null)
@@ -114,11 +114,6 @@ namespace Domovoy.Core.Services
 					if (!switchable.TurnOff())
 					{
 						Console.WriteLine("не удалось включить ус-во");
-						return false;
-					}
-					else
-					{
-						Console.WriteLine("Ус-во не поддерживает включение");
 						return false;
 					}
 				}

@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "Core", "Domovoy\Core.nfproj", "{BC7D00F2-47D1-4C2F-A5A6-FC1C8381AE68}"
 EndProject
 Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "Devices", "Devices\Devices.nfproj", "{78161DBE-CA28-4C51-9130-D8B54D85BB10}"
+	ProjectSection(ProjectDependencies) = postProject
+		{91FFB397-0AF7-4FB2-A6B8-F681D2AF5952} = {91FFB397-0AF7-4FB2-A6B8-F681D2AF5952}
+	EndProjectSection
 EndProject
 Project("{11A8DD76-328B-46DF-9F39-F559912D0360}") = "Firmware", "Firmware\Firmware.nfproj", "{565AABFA-817D-4F15-9B52-D72064A8C58F}"
 EndProject
