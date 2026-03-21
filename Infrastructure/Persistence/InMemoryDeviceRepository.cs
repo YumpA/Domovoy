@@ -4,7 +4,7 @@ using Domovoy.Core.Interfaces.IRepository;
 using System;
 using System.Collections;
 
-namespace Domovoy.Infrastructure
+namespace Infrastructure.Persistence
 {
 	public class InMemoryDeviceRepository : IDeviceRepository
 	{
