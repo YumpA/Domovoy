@@ -9,6 +9,7 @@ using Domovoy.Infrastructure.Web;
 using Infrastructure;
 using Infrastructure.Network;
 using Infrastructure.Web;
+using Microsoft.Extensions.DependencyInjection;
 using nanoFramework.Networking;
 using nanoFramework.WebServer;
 using System;
@@ -27,6 +28,7 @@ namespace Domovoy.Firmware
 		private static RelaySwitch _livingRoomLight;
 		private static RelaySwitch _bedroomLight;
 
+		private static IServiceProvider _serviceProvider;
 		private static WebServer _webServer;
 
 		public static void Main()
@@ -81,7 +83,7 @@ namespace Domovoy.Firmware
 			// ============ КОНЕЦ ДИАГНОСТИКИ ============*/
 
 			Console.WriteLine("\n╔══════════════════════════════╗");
-			Console.WriteLine("║     ДОМОВОЙ v0.2.1          ║");
+			Console.WriteLine("║     ДОМОВОЙ v0.2.2          ║");
 			Console.WriteLine("║   Многослойная архитектура  ║");
 			Console.WriteLine("╚══════════════════════════════╝\n");
 
@@ -101,8 +103,8 @@ namespace Domovoy.Firmware
 		{
 			Console.WriteLine("=== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ ===");
 
-			string ssid = "Intersvyaz_AB8E";
-			string password = "34520291";
+			string ssid = "";
+			string password = "";
 
 			if (!WifiHelper.ConnectToWifi(ssid, password)) 
 			{
@@ -136,6 +138,14 @@ namespace Domovoy.Firmware
 
 			_deviceService = new DeviceService(_repository, _notificationService, devices);
 
+			_serviceProvider=new ServiceCollection()
+				.AddSingleton(typeof(IDeviceRepository), _repository)
+				.AddSingleton(typeof(INotificationService), _notificationService)
+				.AddSingleton(typeof(IDeviceService), _deviceService)
+				.AddSingleton(typeof(RelaySwitch), _livingRoomLight)
+				.AddTransient(typeof(ApiController))
+				.BuildServiceProvider();
+
 			// 3. Регистрируем устройства в репозитории
 			RegisterDevice(_livingRoomLight);
 			RegisterDevice(_bedroomLight);
@@ -155,9 +165,10 @@ namespace Domovoy.Firmware
 			try
 			{
 				//создаю веб-сервер и указываю, где посмотреть роуты, конкретно здесь - ApiController
-				_webServer = new WebServer(80, HttpProtocol.Http);
+				_webServer = 
+					new WebServerDi(80, HttpProtocol.Http, new Type[] {typeof(ApiController)}, _serviceProvider);
 
-				_webServer.CommandReceived += ServerCommandReceived;
+				//_webServer.CommandReceived += ServerCommandReceived;
 
 				_webServer.Start();
 				Console.WriteLine($"✓ Веб-сервер запущен на порту 80");

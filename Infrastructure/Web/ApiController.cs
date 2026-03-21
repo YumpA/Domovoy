@@ -19,99 +19,90 @@ namespace Domovoy.Infrastructure.Web
 		[Method("GET")]
 		public void TurnOn(WebServerEventArgs e) 
 		{
-			/*if (_deviceService == null)
-			{
-				SendResponse(e.Context.Response, 500, "{\"error\":\"Device service not initialized\"}");
-				return;
-			}*/
-
-			string deviceId = e.GetRouteParameter("id");
-			Console.WriteLine(deviceId);
+			string deviceId = GetDeviceId(e);
 
 			bool result = _deviceService.TurnOnDevice(deviceId, "web_user");
 
 			string responce = $"{{\"success\":{result.ToString().ToLower()},\"message\":\"Device turned on\"}}";
 			SendResponse(e.Context.Response, result ? 200 : 500, responce);
-			WebServer.OutputAsStream(e.Context.Response, responce);
 		}
 
-
-		//Обработчик для включения/выключения ус-в
-		public string HandleDeviceCommand(HttpListenerContext context)
+		[Route("api/off/{id}")]
+		[Method("GET")]
+		public void TurnOff(WebServerEventArgs e)
 		{
-			var request = context.Request;
-			var response = context.Response;
+			string deviceId = GetDeviceId(e);
 
-			//получаем Id из URL
-			string url = request.RawUrl;
-			string[] parts = url.Split('/');
+			bool result = _deviceService.TurnOffDevice(deviceId, "web_user");
 
-			if (parts.Length == 4) 
-				return SendResponse(response, 400, "{\"error\":\"Invalid URL format\"}");			
+			string responce = $"{{\"success\":{result.ToString().ToLower()},\"message\":\"Device turned off\"}}";
+			SendResponse(e.Context.Response, result ? 200 : 500, responce);
+		}
 
-			string deviceId = parts[3]; // /api/device/{deviceId}/command
-			string command = parts[4]; // /on/off/toggle/status
+		[Route("api/toggle/{id}")]
+		[Method("GET")]
+		public void ToggleDevice(WebServerEventArgs e)
+		{
+			string deviceId = GetDeviceId(e);
 
-			bool result = false;
-			string message = "";
+			bool result = _deviceService.ToggleDevice(deviceId, "web_user");
 
-			switch (command.ToLower()) 
+			string responce = $"{{\"success\":{result.ToString().ToLower()},\"message\":\"Device toggled\"}}";
+			SendResponse(e.Context.Response, result ? 200 : 500, responce);
+		}
+
+		[Route("api/status/{id}")]
+		[Method("GET")]
+		public void GetDeviceInfo(WebServerEventArgs e)
+		{
+			string deviceId = GetDeviceId(e);
+
+			var info = _deviceService.GetDeviceInfo(deviceId);
+			if (info != null)
 			{
-				case "on":
-					result=_deviceService.TurnOnDevice(deviceId, "web_user");
-					message = result ? "Ус-во включено" : "Ошибка включения";
-					break;
-
-				case "off":
-					result = _deviceService.TurnOffDevice(deviceId, "web_user");
-					message = result ? "Ус-во выключено" : "Ошибка выключения";
-					break;
-
-				case "toggle":
-					result = _deviceService.ToggleDevice(deviceId, "web_user");
-					message = result ? "Ус-во переключено" : "Ошибка переключения";
-					break;
-				case "status":
-					var info = _deviceService.GetDeviceInfo(deviceId);
-					if (info != null)
-						return SendResponse(response, 200, JsonHelper.Serialize(info));
-					else
-						return SendResponse(response, 404, "{\"error\":\"Ус-во не найдено\"}");
-				default:
-					return SendResponse(response, 400, "{\"error\":\"Неизвестная команда\"}");
+				string json = JsonHelper.Serialize(info);
+				SendResponse(e.Context.Response, 200, json);
 			}
 
-			return SendResponse(response, result ? 200 : 500,
-				$"{{\"success\":{result.ToString().ToLower()},\"message\":\"{message}\"}}");
+			else
+			{
+				SendResponse(e.Context.Response, 404, "{\"error\":\"Device not found\"}");
+			}
 		}
 
-		//Обработчик для статистики
-		public string HandleStats(HttpListenerContext context)
+		private string GetDeviceId(WebServerEventArgs e)
 		{
-			var stats = _deviceService.GetStatistics();
+			string url = e.Context.Request.RawUrl;
+			//Console.WriteLine(url);
 
-			return SendResponse(context.Response, 200, JsonHelper.Serialize(stats));
-		}
+			string[] parts = url.Split('/');
+			string id = parts[3];
 
-		//обработчик списка ус-в
-		public string HandleDeviceList(HttpListenerContext context)
-		{
-			//добавить метод в IDeviceService для получения всех ус-в, пока заглушка
-			return SendResponse(context.Response, 200, "{\"devices\":[]}");
+			if (url.Length == 4)
+				WebServer.OutputAsStream(e.Context.Response, "{\"error\":\"Invalid URL format\"}");
+
+			return id;
 		}
 
 		//вспомогательный метод для отправки ответа
-		private string SendResponse(HttpListenerResponse response, int statusCode, string content)
+		private void SendResponse(HttpListenerResponse response, int statusCode, string content)
 		{
-			response.StatusCode = statusCode;
-			response.ContentType = "application/json";
+			try
+			{
+				response.StatusCode = statusCode;
+				response.ContentType = "application/json";
 
-			byte[] buffer = System.Text.Encoding.UTF8.GetBytes(content);
-			response.ContentLength64 = buffer.Length;
-			response.OutputStream.Write(buffer, 0, buffer.Length);
-			response.OutputStream.Flush();
+				byte[] buffer = System.Text.Encoding.UTF8.GetBytes(content);
+				response.ContentLength64 = buffer.Length;
+				response.OutputStream.Write(buffer, 0, buffer.Length);
+				response.OutputStream.Flush();
+			}
 
-			return null; //WebServer требует возврата строки, но мы уже отправили ответ
+			finally
+			{
+				response.Close();
+			}
+			//return null; //WebServer требует возврата строки, но мы уже отправили ответ
 		}
 	}
 }
