@@ -32,6 +32,7 @@ namespace Domovoy.Infrastructure.Web
 		public void TurnOff(WebServerEventArgs e)
 		{
 			string deviceId = GetDeviceId(e);
+			Console.WriteLine(deviceId);
 
 			bool result = _deviceService.TurnOffDevice(deviceId, "web_user");
 

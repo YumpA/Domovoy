@@ -2,6 +2,8 @@
 using Domovoy.Core.Interfaces;
 using Domovoy.Core.Interfaces.IRepository;
 using Domovoy.Core.Models;
+using Domovoy.Events;
+using Domovoy.Interfaces;
 using System;
 using System.Collections;
 
@@ -12,12 +14,15 @@ namespace Domovoy.Core.Services
 		private readonly IDeviceRepository _repository;
 		private readonly INotificationService _notificationService;
 		private readonly Hashtable _devices;
+		private readonly IMqttService _mqttService;
 
-		public DeviceService(IDeviceRepository repository, INotificationService notificationService, Hashtable devices)
+		public DeviceService(IDeviceRepository repository, INotificationService notificationService,
+			Hashtable devices, IMqttService mqttService = null)
 		{
 			_repository = repository;
 			_notificationService = notificationService;
 			_devices = devices ?? new Hashtable();
+			_mqttService = mqttService;
 		}
 
 		public bool TurnOnDevice(string deviceId, string initiatedBy)
@@ -70,6 +75,8 @@ namespace Domovoy.Core.Services
 					deviceId, oldStatus, DeviceStatus.Online, $"Включено пользователем {initiatedBy}");
 
 				Console.WriteLine($"Устройство {device.Name} включено");
+				//OnDeviceStateChanged(deviceId, true, initiatedBy);
+				_mqttService?.PublishStatus(deviceId, true);
 				return true;
 			}
 			catch (Exception ex)

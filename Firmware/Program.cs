@@ -7,6 +7,7 @@ using Domovoy.Core.Services;
 using Domovoy.Infrastructure;
 using Domovoy.Infrastructure.Web;
 using Infrastructure;
+using Infrastructure.MQTT;
 using Infrastructure.Network;
 using Infrastructure.Web;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ namespace Domovoy.Firmware
 {
 	public class Program
 	{
-		private static IObservableRepository _repository;
+		private static InMemoryDeviceRepository _repository;
 		private static INotificationService _notificationService;
 		private static IDeviceService _deviceService;
 		private static RelaySwitch _livingRoomLight;
@@ -30,6 +31,7 @@ namespace Domovoy.Firmware
 
 		private static IServiceProvider _serviceProvider;
 		private static WebServer _webServer;
+		private static MqttService _mqttService;
 
 		public static void Main()
 		{
@@ -54,8 +56,8 @@ namespace Domovoy.Firmware
 		{
 			Console.WriteLine("=== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ ===");
 
-			string ssid = "";
-			string password = "";
+			string ssid = "Intersvyaz_AB8E";
+			string password = "34520291";
 
 			if (!WifiHelper.ConnectToWifi(ssid, password)) 
 			{
@@ -106,7 +108,20 @@ namespace Domovoy.Firmware
 			InitializeDevice(_bedroomLight);
 
 			Console.WriteLine("\n=== СИСТЕМА ГОТОВА ===");
-			PrintSystemStatus();
+			PrintSystemStatus();			
+
+			//MQTT
+			_mqttService = new MqttService(_deviceService);
+			_deviceService = new DeviceService(_repository, _notificationService, devices, _mqttService);
+
+			if (_mqttService.Connect())
+			{
+				Console.WriteLine("MQTT service started.");
+			}
+			else
+			{
+				Console.WriteLine("Failed to start MQTT service.");
+			}
 
 			StartWebServer();
 		}

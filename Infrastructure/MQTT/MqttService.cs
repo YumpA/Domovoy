@@ -1,0 +1,138 @@
+﻿using Domovoy.Core.Services;
+using Domovoy.Interfaces;
+using nanoFramework.M2Mqtt;
+using nanoFramework.M2Mqtt.Messages;
+using System;
+using System.Text;
+
+namespace Infrastructure.MQTT
+{
+	public class MqttService : IMqttService
+	{
+		private readonly IDeviceService _deviceService;
+		private readonly MqttClient _client;
+		private bool _disposed;
+
+		//параметры подключения, потом вынести в конфигурацию
+		private const string BrokerAddress = "test.mosquitto.org";
+		private const int BrokerPort = 1883;
+		private const string ClientId = "DomovoyESP32";
+
+		//топики
+		private const string CommandTopic = "domovoy/device/+/command";
+		private const string StatusTopicPrefix = "domovoy/device/";
+
+		public bool IsConnected => _client.IsConnected;
+
+		public void Dispose()
+		{
+			if (!_disposed)
+			{
+				Disconnect();
+				_client?.Dispose();
+				_disposed = true;
+			}
+		}
+
+		public MqttService(IDeviceService deviceService)
+		{
+			_deviceService = deviceService ?? throw new ArgumentNullException(nameof(deviceService));
+			_client = new MqttClient(BrokerAddress, BrokerPort, false, null, null, MqttSslProtocols.None); //1
+
+			_client.MqttMsgPublishReceived += OnMqttMessageReceived;
+		}
+
+		public bool Connect()
+		{
+			try
+			{
+				Console.WriteLine($"Connecting to MQTT broker {BrokerAddress}:{BrokerPort}...");
+				var result = _client.Connect(ClientId);
+				if (result == MqttReasonCode.Success) //2
+				{
+					Console.WriteLine("Mqtt connected");
+					_client.Subscribe(new string[] { CommandTopic }, new MqttQoSLevel[] { MqttQoSLevel.AtMostOnce }); //3
+					return true;
+				}
+				else
+				{
+					Console.WriteLine($"MQTT connection failed: {result}");
+					return false;
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"MQTT connection error: {ex.Message}");
+				return false;
+			}
+		}
+		private void OnMqttMessageReceived(object sender, MqttMsgPublishEventArgs e)
+		{
+			try
+			{
+				string topic = e.Topic;
+				string payload = Encoding.UTF8.GetString(e.Message, 0, e.Message.Length);
+
+				Console.WriteLine($"MQTT: {topic} -> {payload}");
+
+				//разбор топика
+				string[] parts = topic.Split('/');
+				if (parts.Length >= 4 && parts[2] != null && parts[3] == "command")
+				{
+					string deviceId = parts[2];
+					string command = payload.Trim().ToLower();
+
+					switch (command)
+					{
+						case "on":
+							_deviceService.TurnOnDevice(deviceId, "mqtt");
+							break;
+						case "off":
+							_deviceService.TurnOffDevice(deviceId, "mqtt");
+							break;
+						case "toggle":
+							_deviceService.ToggleDevice(deviceId, "mqtt");
+							break;
+						default:
+							Console.WriteLine($"Unknown MQTT command: {command}");
+							break;
+					}
+				}
+			}
+			catch(Exception ex)
+			{
+				Console.WriteLine($"MQTT processing error: {ex.Message}");
+			}
+		}
+
+		public void PublishStatus(string deviceId, bool isOn)
+		{
+			try
+			{
+				if (!IsConnected) return;
+				string topic = $"{StatusTopicPrefix}{deviceId}/status";
+				string payload = isOn ? "on" : "off";
+				byte[] data = Encoding.UTF8.GetBytes(payload);
+				_client.Publish(topic, data, MqttQoSLevel.AtMostOnce.ToString(), null); //4
+				Console.WriteLine($"Published {payload} to {topic}");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Publish error: {ex.Message}");
+			}
+		}
+
+		public void Disconnect()
+		{
+			try
+			{
+				if (_client != null && _client.IsConnected)
+					_client.Disconnect();
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Disconnect error: {ex.Message}");
+			}
+		}
+	}
+}

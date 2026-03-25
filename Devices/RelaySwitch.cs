@@ -3,9 +3,6 @@ using System.Device.Gpio;
 using Domovoy.Core;
 using Domovoy.Core.Enums;
 using Domovoy.Core.Interfaces;
-using Domovoy.Core.Models;
-using Domovoy.Events;
-using Domovoy.Interfaces;
 
 namespace Domovoy.Devices
 {
@@ -21,9 +18,6 @@ namespace Domovoy.Devices
 		private bool _isOn = false;
 		private DeviceStatus _status = DeviceStatus.Offline;
 
-		//ссылка для подписки
-		private readonly IObservableRepository _repository;
-
 		public string Id => _id;
 		public string Name => _name;
 		public string Location => _location;
@@ -31,13 +25,12 @@ namespace Domovoy.Devices
 		public DeviceStatus Status => _status;
 		public bool IsOn => _isOn;
 
-		public RelaySwitch(string id, string name, string location, int pin, IObservableRepository repository)
+		public RelaySwitch(string id, string name, string location, int pin)
 		{
 			_id = id ?? throw new ArgumentNullException(nameof(id));
 			_name = name ?? $"Реле {id}";
 			_location = location ?? "Неизвестно";
 			_pin = pin;
-			_repository = repository;
 			_gpio = new GpioController();
 		}
 
@@ -55,9 +48,6 @@ namespace Domovoy.Devices
 
 				_isInitialized = true;
 				_status = DeviceStatus.Online;
-
-				//подписка
-				_repository.DeviceChanged += OnDeviceChanged;
 
 				Console.WriteLine($"✓ Реле '{_name}' готово");
 				return true;
@@ -78,9 +68,6 @@ namespace Domovoy.Devices
 
 				Console.WriteLine($"Выключение реле '{_name}'...");
 
-				//отписка
-				_repository.DeviceChanged -= OnDeviceChanged;
-
 				TurnOffInternal();
 				_gpio.ClosePin(_pin);
 
@@ -97,28 +84,6 @@ namespace Domovoy.Devices
 			}
 		}
 
-		private void OnDeviceChanged(object sender, DeviceChangedEventArgs e)
-		{
-			//если ивент не про текущее ус-во, игнор
-			if (e.DeviceId != _id)
-				return;
-
-			if (e.PropertyName == nameof(DeviceData.Status))
-			{
-				DeviceStatus newStatus = (DeviceStatus)e.NewValue;
-				if (newStatus == DeviceStatus.Online)
-				{
-					Console.WriteLine($"[СОБЫТИЕ] Реле '{_name}' получило команду включиться");
-					TurnOnInternal();
-				}
-				else if (newStatus == DeviceStatus.Offline)
-				{
-					Console.WriteLine($"[СОБЫТИЕ] Реле '{_name}' получило команду выключиться");
-					TurnOffInternal();
-				}
-			}
-		}
-
 		public bool TurnOn()
 		{
 			if (!_isInitialized || _status != DeviceStatus.Online)
@@ -129,7 +94,12 @@ namespace Domovoy.Devices
 
 			try
 			{
-				TurnOnInternal();
+				if (!_isOn)
+				{
+					_gpio.Write(_pin, PinValue.High);
+					_isOn = true;
+					Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] ✓ {_name}: ВКЛ");
+				}
 				return true;
 			}
 			catch (Exception ex)
@@ -149,7 +119,13 @@ namespace Domovoy.Devices
 
 			try
 			{
-				TurnOffInternal();
+				if (_isOn)
+				{
+					//Console.WriteLine(_pin.ToString());
+					_gpio.Write(_pin, PinValue.Low);
+					_isOn = false;
+					Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] ✓ {_name}: ВЫКЛ");
+				}
 				return true;
 			}
 			catch (Exception ex)
@@ -167,22 +143,12 @@ namespace Domovoy.Devices
 
 		private void TurnOffInternal()
 		{
-			if (!_isOn)
+			try
 			{
-				//Console.WriteLine(_pin.ToString());
 				_gpio.Write(_pin, PinValue.Low);
 				_isOn = false;
-				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] ✓ {_name}: ВЫКЛ");
 			}
-		}
-
-		private void TurnOnInternal()
-		{
-			if (_isOn) return;
-	
-			_gpio.Write(_pin, PinValue.High);
-			_isOn = true;
-			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss}] ✓ {_name}: ВКЛ");			
+			catch { }
 		}
 	}
 }

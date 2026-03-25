@@ -19,8 +19,10 @@
   <Import Project="$(NanoFrameworkProjectSystemPath)NFProjectSystem.props" Condition="Exists('$(NanoFrameworkProjectSystemPath)NFProjectSystem.props')" />
   <ItemGroup>
     <Compile Include="Events\DeviceChangedEventArgs.cs" />
+    <Compile Include="Events\DeviceStateChangedEventArgs.cs" />
     <Compile Include="INotificationService.cs" />
     <Compile Include="Interfaces\IDevice.cs" />
+    <Compile Include="Interfaces\IMqttService.cs" />
     <Compile Include="Interfaces\IObservableRepository.cs" />
     <Compile Include="Interfaces\ISwitchable.cs" />
     <Compile Include="Models\DeviceData.cs" />
