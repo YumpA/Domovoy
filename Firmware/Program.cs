@@ -7,6 +7,7 @@ using Domovoy.Core.Services;
 using Domovoy.Infrastructure;
 using Domovoy.Infrastructure.Web;
 using Infrastructure;
+using Infrastructure.Configuration;
 using Infrastructure.MQTT;
 using Infrastructure.Network;
 using Infrastructure.Web;
@@ -56,62 +57,66 @@ namespace Domovoy.Firmware
 		{
 			Console.WriteLine("=== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ ===");
 
-			string ssid = "Intersvyaz_AB8E";
-			string password = "34520291";
+			var config = ConfigManager.Load();
 
-			if (!WifiHelper.ConnectToWifi(ssid, password)) 
+			if (config.Wifi!=null && !string.IsNullOrEmpty(config.Wifi.Ssid)) 
 			{
-				Console.WriteLine("Только локальное управление");
+				WifiHelper.ConnectToWifi(config.Wifi.Ssid, config.Wifi.Password);
 			}
 
 			var devices = new Hashtable();
 
-			// 1. Сервисы инфраструктуры
-
 			_repository = new InMemoryDeviceRepository();
-			_notificationService = new ConsoleNotificationService();			
+			_notificationService = new ConsoleNotificationService();
 
-			Console.WriteLine("✓ Сервисы инициализированы");
+			foreach (object item in config.Devices)
+			{
+				if (item is DeviceConfig devConfig)
+				{
+					Console.WriteLine($"Создаём устройство: {devConfig.Name} на пине {devConfig.Pin}");
 
-			// 2. Создаем устройства
-			_livingRoomLight = new RelaySwitch(
-				"light_living_room",
-				"Основной свет гостиной",
-				"Гостиная",
-				21);
+					IDevice device = null;
+					if (devConfig.Type == "Switch")
+					{
+						device = new RelaySwitch(devConfig.Id, devConfig.Name, devConfig.Location, devConfig.Pin);
+					}
+					// else if (devConfig.Type == "Dimmer") ...
 
-			_bedroomLight = new RelaySwitch(
-				"light_bedroom",
-				"Свет спальни",
-				"Спальня",
-				22);
-
-			devices[_livingRoomLight.Id] = _livingRoomLight;
-			devices[_bedroomLight.Id] = _bedroomLight;
+					if (device != null)
+					{
+						devices[device.Id] = device;
+						// регистрируем данные в репозитории
+						var deviceData = new DeviceData
+						{
+							Id = device.Id,
+							Name = device.Name,
+							Location = device.Location,
+							Type = device.Type,
+							Status = DeviceStatus.Offline,
+							CreatedAt = DateTime.UtcNow,
+							LastUpdated = DateTime.UtcNow
+						};
+						_repository.Add(deviceData);
+						device.Initialize();
+					}
+				}
+				else
+				{
+					Console.WriteLine($"Неизвестный тип в Devices: {item?.GetType()?.Name ?? "null"}");
+				}
+			}
 
 			_deviceService = new DeviceService(_repository, _notificationService, devices);
 
-			_serviceProvider=new ServiceCollection()
+			_serviceProvider = new ServiceCollection()
 				.AddSingleton(typeof(IDeviceRepository), _repository)
 				.AddSingleton(typeof(INotificationService), _notificationService)
 				.AddSingleton(typeof(IDeviceService), _deviceService)
-				.AddSingleton(typeof(RelaySwitch), _livingRoomLight)
 				.AddTransient(typeof(ApiController))
 				.BuildServiceProvider();
 
-			// 3. Регистрируем устройства в репозитории
-			RegisterDevice(_livingRoomLight);
-			RegisterDevice(_bedroomLight);
-
-			// 4. Инициализируем устройства
-			InitializeDevice(_livingRoomLight);
-			InitializeDevice(_bedroomLight);
-
-			Console.WriteLine("\n=== СИСТЕМА ГОТОВА ===");
-			PrintSystemStatus();			
-
 			//MQTT
-			_mqttService = new MqttService(_deviceService);
+			_mqttService = new MqttService(_deviceService, config.Mqtt);
 			_deviceService = new DeviceService(_repository, _notificationService, devices, _mqttService);
 
 			if (_mqttService.Connect())
@@ -122,6 +127,9 @@ namespace Domovoy.Firmware
 			{
 				Console.WriteLine("Failed to start MQTT service.");
 			}
+
+			Console.WriteLine("\n=== СИСТЕМА ГОТОВА ===");
+			PrintSystemStatus();
 
 			StartWebServer();
 		}

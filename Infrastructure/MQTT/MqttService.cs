@@ -1,4 +1,5 @@
-﻿using Domovoy.Core.Services;
+﻿using Domovoy;
+using Domovoy.Core.Services;
 using Domovoy.Interfaces;
 using nanoFramework.M2Mqtt;
 using nanoFramework.M2Mqtt.Messages;
@@ -34,10 +35,10 @@ namespace Infrastructure.MQTT
 			}
 		}
 
-		public MqttService(IDeviceService deviceService)
+		public MqttService(IDeviceService deviceService, MqttConfig config)
 		{
 			_deviceService = deviceService ?? throw new ArgumentNullException(nameof(deviceService));
-			_client = new MqttClient(BrokerAddress, BrokerPort, false, null, null, MqttSslProtocols.None); //1
+			_client = new MqttClient(config.Broker, config.Port, false, null, null, MqttSslProtocols.None); //1
 
 			_client.MqttMsgPublishReceived += OnMqttMessageReceived;
 		}
