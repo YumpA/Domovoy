@@ -52,6 +52,53 @@ namespace Domovoy.Infrastructure.Web
 			SendResponse(e.Context.Response, result ? 200 : 500, responce);
 		}
 
+		[Route("api/blink/{id}")]
+		[Method("GET")]
+		public void Blink(WebServerEventArgs e)
+		{
+			string deviceId = GetDeviceId(e);
+			string query = e.Context.Request.RawUrl;
+			Console.WriteLine(deviceId);
+			int count = 3, delay = 200;
+
+			if (!string.IsNullOrEmpty(query))
+			{
+				var parts = query.TrimStart('?').Split('&');
+				foreach (var part in parts)
+				{
+					var kv = part.Split('=');
+					if (kv[0] == "count") int.TryParse(kv[1], out count);
+					if (kv[0] == "delay") int.TryParse(kv[1], out delay);
+				}
+			}
+			bool result = _deviceService.BlinkDevice(deviceId, count, delay, "web_user");
+			string response = $"{{\"success\":{result.ToString().ToLower()},\"message\":\"Blink started\"}}";
+			SendResponse(e.Context.Response, result ? 200 : 500, response);
+		}
+
+		[Route("api/timer/{id}")]
+		public void Timer(WebServerEventArgs e)
+		{
+			string deviceId = GetDeviceId(e);
+			string query = e.Context.Request.RawUrl;
+			int seconds = 10;
+			bool turnOn = true;
+			if (!string.IsNullOrEmpty(query))
+			{
+				var parts = query.TrimStart('?').Split('&');
+				foreach (var part in parts)
+				{
+					var kv = part.Split('=');
+					if (kv[0] == "seconds") int.TryParse(kv[1], out seconds);
+					if (kv[0] == "action") turnOn = kv[1] == "on";
+				}
+			}
+			bool result=_deviceService.SetTimer(deviceId, seconds, turnOn, "web_user");
+			string response= $"{{\"success\":{result.ToString().ToLower()}," +
+				$"\"message\":\"Timer set for {seconds} seconds\"}}";
+			SendResponse(e.Context.Response, result ? 200 : 500, response);
+		}
+
 		[Route("api/status/{id}")]
 		[Method("GET")]
 		public void GetDeviceInfo(WebServerEventArgs e)
@@ -74,9 +121,9 @@ namespace Domovoy.Infrastructure.Web
 		private string GetDeviceId(WebServerEventArgs e)
 		{
 			string url = e.Context.Request.RawUrl;
+			char[] separators = { '/', '?' };
 			//Console.WriteLine(url);
-
-			string[] parts = url.Split('/');
+			string[] parts = url.Split(separators);
 			string id = parts[3];
 
 			if (url.Length == 4)

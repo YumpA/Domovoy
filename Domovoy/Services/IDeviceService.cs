@@ -10,6 +10,8 @@ namespace Domovoy.Core.Services
 		bool TurnOnDevice(string deviceId, string initiatedBy);
 		bool TurnOffDevice(string deviceId, string initiatedBy);
 		bool ToggleDevice(string deviceId, string initiatedBy);
+		bool BlinkDevice(string deviceId, int count, int delayMs, string initiatedBy);
+		bool SetTimer(string deviceId, int seconds, bool turnedOn, string initiatedBy);
 
 		// Групповые операции
 		int TurnOffAllInLocation(string location, string initiatedBy);

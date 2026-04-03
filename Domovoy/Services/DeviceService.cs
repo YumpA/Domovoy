@@ -6,6 +6,7 @@ using Domovoy.Events;
 using Domovoy.Interfaces;
 using System;
 using System.Collections;
+using System.Threading;
 
 namespace Domovoy.Core.Services
 {
@@ -15,6 +16,8 @@ namespace Domovoy.Core.Services
 		private readonly INotificationService _notificationService;
 		private readonly Hashtable _devices;
 		private readonly IMqttService _mqttService;
+		
+		private readonly Hashtable _timers = new Hashtable();
 
 		public DeviceService(IDeviceRepository repository, INotificationService notificationService,
 			Hashtable devices, IMqttService mqttService = null)
@@ -151,6 +154,49 @@ namespace Domovoy.Core.Services
 			return device.Status == DeviceStatus.Online
 				? TurnOffDevice(deviceId, initiatedBy)
 				: TurnOnDevice(deviceId, initiatedBy);
+		}
+
+		public bool BlinkDevice(string deviceId, int count, int delayMs, string initiatedBy) { 
+			var device=_repository.GetById(deviceId);
+			if (device == null) return false;
+
+			//Мигание в отдельном потоке, чтобы не сломать основной
+			for (int i = 0; i < count; i++) {
+				ToggleDevice(deviceId, initiatedBy);
+				Thread.Sleep(delayMs);
+				ToggleDevice(deviceId, initiatedBy);
+				Thread.Sleep(delayMs);
+			}
+
+			return true;
+		}
+
+		public bool SetTimer(string deviceId, int seconds, bool turnedOn, string initiatedBy)
+		{
+			var device = _repository.GetById(deviceId);
+			if (device == null) return false;
+
+			CancelTimer(deviceId);
+			var timer = new Timer(_ =>
+			{
+				if (turnedOn)
+					TurnOnDevice(deviceId, initiatedBy);
+				else
+					TurnOffDevice(deviceId, initiatedBy);
+				CancelTimer(deviceId);
+			}, null, seconds * 1000, Timeout.Infinite);
+
+			_timers[deviceId] = timer;
+			return true;
+		}
+
+		private void CancelTimer(string deviceId)
+		{
+			if (_timers[deviceId] is Timer timer)
+			{
+				timer.Dispose();
+				_timers.Remove(deviceId);
+			}
 		}
 
 		public int TurnOffAllInLocation(string location, string initiatedBy)

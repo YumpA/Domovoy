@@ -1,9 +1,12 @@
 ﻿using Domovoy;
 using Domovoy.Core.Services;
 using Domovoy.Interfaces;
+using Infrastructure.Web;
+using nanoFramework.Json;
 using nanoFramework.M2Mqtt;
 using nanoFramework.M2Mqtt.Messages;
 using System;
+using System.Collections;
 using System.Text;
 
 namespace Infrastructure.MQTT
@@ -49,7 +52,7 @@ namespace Infrastructure.MQTT
 			{
 				Console.WriteLine($"Connecting to MQTT broker {BrokerAddress}:{BrokerPort}...");
 				var result = _client.Connect(ClientId);
-				if (result == MqttReasonCode.Success) //2
+				if (result == MqttReasonCode.Success)
 				{
 					Console.WriteLine("Mqtt connected");
 					_client.Subscribe(new string[] { CommandTopic }, new MqttQoSLevel[] { MqttQoSLevel.AtMostOnce }); //3
@@ -81,9 +84,30 @@ namespace Infrastructure.MQTT
 				if (parts.Length >= 4 && parts[2] != null && parts[3] == "command")
 				{
 					string deviceId = parts[2];
-					string command = payload.Trim().ToLower();
 
-					switch (command)
+					string command = null;
+					Hashtable parameters = null;
+
+					if (payload.TrimStart().StartsWith("{"))
+					{
+						var json = JsonHelper.ParseJson(payload);
+
+						if (json != null && json.Contains("command"))
+						{
+							command = json["command"].ToString();
+							if (json.Contains("params") && json["params"] is Hashtable)
+								parameters = (Hashtable)json["params"];
+						}
+					}
+
+					else
+					{
+						command = payload.Trim().ToLower();
+					}
+
+					if (string.IsNullOrEmpty(command)) return;
+
+					switch (command.ToLower())
 					{
 						case "on":
 							_deviceService.TurnOnDevice(deviceId, "mqtt");
@@ -93,6 +117,25 @@ namespace Infrastructure.MQTT
 							break;
 						case "toggle":
 							_deviceService.ToggleDevice(deviceId, "mqtt");
+							break;
+						case "blink":
+							int count = 3, delay = 200;
+							if (parameters != null)
+							{
+								if (parameters.Contains("count")) count = (Int32)parameters["count"];
+								if (parameters.Contains("delay")) delay = (Int32)parameters["delay"];
+							}
+							_deviceService.BlinkDevice(deviceId, count, delay, "mqtt");
+							break;
+						case "timer":
+							int seconds = 10;
+							bool turnOn = true;
+							if (parameters != null)
+							{
+								if (parameters.Contains("seconds")) seconds = (Int32)parameters["seconds"];
+								if (parameters.Contains("action")) turnOn = parameters["action"].ToString() == "on";
+							}
+							_deviceService.SetTimer(deviceId, seconds, turnOn, "mqtt");
 							break;
 						default:
 							Console.WriteLine($"Unknown MQTT command: {command}");

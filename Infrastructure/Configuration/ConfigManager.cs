@@ -4,6 +4,7 @@ using System.Text;
 using System.IO;
 using nanoFramework.Json;
 using System.Collections;
+using Infrastructure.Web;
 
 namespace Infrastructure.Configuration
 {
@@ -26,8 +27,6 @@ namespace Infrastructure.Configuration
 				string json = File.ReadAllText(ConfigfilePath);
 				//Console.WriteLine(json);
 
-				//проблема с десерализацией, нужно исправить
-				var config = (AppConfig)JsonConvert.DeserializeObject(json, typeof(AppConfig));
 				return CreateDefaultConfig();
 			}
 
