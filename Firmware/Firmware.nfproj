@@ -28,6 +28,9 @@
     <Reference Include="nanoFramework.DependencyInjection">
       <HintPath>..\packages\nanoFramework.DependencyInjection.1.1.32\lib\nanoFramework.DependencyInjection.dll</HintPath>
     </Reference>
+    <Reference Include="nanoFramework.Networking.Sntp">
+      <HintPath>..\packages\nanoFramework.Networking.Sntp.1.6.42\lib\nanoFramework.Networking.Sntp.dll</HintPath>
+    </Reference>
     <Reference Include="nanoFramework.Runtime.Events">
       <HintPath>..\packages\nanoFramework.Runtime.Events.1.11.32\lib\nanoFramework.Runtime.Events.dll</HintPath>
     </Reference>

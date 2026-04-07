@@ -156,7 +156,9 @@ namespace Infrastructure.MQTT
 				if (!IsConnected) return;
 				string topic = $"{StatusTopicPrefix}{deviceId}/status";
 				string payload = isOn ? "on" : "off";
+				Console.WriteLine(payload);
 				byte[] data = Encoding.UTF8.GetBytes(payload);
+
 				_client.Publish(topic, data, MqttQoSLevel.AtMostOnce.ToString(), null); //4
 				Console.WriteLine($"Published {payload} to {topic}");
 			}

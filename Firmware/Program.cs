@@ -10,6 +10,7 @@ using Infrastructure;
 using Infrastructure.Configuration;
 using Infrastructure.MQTT;
 using Infrastructure.Network;
+using Infrastructure.Scheduling;
 using Infrastructure.Web;
 using Microsoft.Extensions.DependencyInjection;
 using nanoFramework.Networking;
@@ -33,6 +34,7 @@ namespace Domovoy.Firmware
 		private static IServiceProvider _serviceProvider;
 		private static WebServer _webServer;
 		private static MqttService _mqttService;
+		private static ScheduleManager _scheduleManager;
 
 		public static void Main()
 		{
@@ -63,6 +65,8 @@ namespace Domovoy.Firmware
 			{
 				WifiHelper.ConnectToWifi(config.Wifi.Ssid, config.Wifi.Password);
 			}
+
+			SyncTime();
 
 			var devices = new Hashtable();
 
@@ -108,12 +112,34 @@ namespace Domovoy.Firmware
 
 			_deviceService = new DeviceService(_repository, _notificationService, devices);
 
+			//schedule
+			_scheduleManager = new ScheduleManager(_deviceService);
+
+			//DI
 			_serviceProvider = new ServiceCollection()
 				.AddSingleton(typeof(IDeviceRepository), _repository)
 				.AddSingleton(typeof(INotificationService), _notificationService)
 				.AddSingleton(typeof(IDeviceService), _deviceService)
+				.AddSingleton(typeof(ScheduleManager), _scheduleManager)
 				.AddTransient(typeof(ApiController))
 				.BuildServiceProvider();
+
+			/*
+			_scheduleManager.AddSchedule(new Models.ScheduleEntry
+			{
+				DeviceId = "light_living_room",
+				Command = "on",
+				TimeOfDay = new TimeSpan(22, 07, 0),
+				IsActive = true
+			});
+			_scheduleManager.AddSchedule(new Models.ScheduleEntry
+			{
+				DeviceId = "light_living_room",
+				Command = "off",
+				TimeOfDay = new TimeSpan(22, 09, 0),
+				IsActive = true
+			});
+			_scheduleManager.Start();*/
 
 			//MQTT
 			_mqttService = new MqttService(_deviceService, config.Mqtt);
@@ -128,10 +154,27 @@ namespace Domovoy.Firmware
 				Console.WriteLine("Failed to start MQTT service.");
 			}
 
+
+			
+
 			Console.WriteLine("\n=== СИСТЕМА ГОТОВА ===");
 			PrintSystemStatus();
 
 			StartWebServer();
+		}
+
+		private static void SyncTime()
+		{
+			try
+			{
+				Console.WriteLine("Syncing time via NTP...");				
+				Sntp.Start();
+				Sntp.UpdateNow();
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"NTP error: {ex.Message}");
+			}
 		}
 
 		private static void StartWebServer()
