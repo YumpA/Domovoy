@@ -25,6 +25,7 @@
     <Compile Include="Network\WifiHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ConsoleNotificationService.cs" />
+    <Compile Include="Scheduling\ScheduleManager.cs" />
     <Compile Include="Web\ApiController.cs" />
     <Compile Include="Web\JsonHelper.cs" />
     <Compile Include="Web\WebServerDi.cs" />

@@ -31,6 +31,7 @@
     <Compile Include="Enums\DeviceType.cs" />
     <Compile Include="Enums\SenseType.cs" />
     <Compile Include="Interfaces\IRepository\IDeviceRepository.cs" />
+    <Compile Include="Models\ScheduleEntry.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\DeviceService.cs" />

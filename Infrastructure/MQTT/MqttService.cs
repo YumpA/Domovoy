@@ -18,7 +18,7 @@ namespace Infrastructure.MQTT
 		private bool _disposed;
 
 		//параметры подключения, потом вынести в конфигурацию
-		private const string BrokerAddress = "test.mosquitto.org";
+		private const string BrokerAddress = "broker.hivemq.com";
 		private const int BrokerPort = 1883;
 		private const string ClientId = "DomovoyESP32";
 
@@ -156,7 +156,9 @@ namespace Infrastructure.MQTT
 				if (!IsConnected) return;
 				string topic = $"{StatusTopicPrefix}{deviceId}/status";
 				string payload = isOn ? "on" : "off";
+				Console.WriteLine(payload);
 				byte[] data = Encoding.UTF8.GetBytes(payload);
+
 				_client.Publish(topic, data, MqttQoSLevel.AtMostOnce.ToString(), null); //4
 				Console.WriteLine($"Published {payload} to {topic}");
 			}

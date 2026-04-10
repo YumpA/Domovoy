@@ -1,4 +1,6 @@
 ﻿using Domovoy.Core.Services;
+using Domovoy.Models;
+using Infrastructure.Scheduling;
 using Infrastructure.Web;
 using nanoFramework.WebServer;
 using System;
@@ -9,10 +11,12 @@ namespace Domovoy.Infrastructure.Web
 	public class ApiController
 	{
 		public IDeviceService _deviceService;
+		private ScheduleManager _scheduleManager;
 
-		public ApiController(IDeviceService deviceService)
+		public ApiController(IDeviceService deviceService, ScheduleManager scheduleManager)
 		{
 			_deviceService = deviceService ?? throw new ArgumentNullException(nameof(deviceService));
+			_scheduleManager = scheduleManager ?? throw new ArgumentNullException(nameof(scheduleManager));
 		}
 
 		[Route("api/on/{id}")]
@@ -77,6 +81,7 @@ namespace Domovoy.Infrastructure.Web
 		}
 
 		[Route("api/timer/{id}")]
+		[Method("GET")]
 		public void Timer(WebServerEventArgs e)
 		{
 			string deviceId = GetDeviceId(e);
@@ -97,6 +102,37 @@ namespace Domovoy.Infrastructure.Web
 			string response= $"{{\"success\":{result.ToString().ToLower()}," +
 				$"\"message\":\"Timer set for {seconds} seconds\"}}";
 			SendResponse(e.Context.Response, result ? 200 : 500, response);
+		}
+
+		[Route("api/schedule/add")]
+		[Method("POST")]
+		public void AddSchedule(WebServerEventArgs e)
+		{
+			var request = e.Context.Request;
+			var body = request.ReadBody();
+
+			string jsonStr = System.Text.Encoding.UTF8.GetString(body, 0, body.Length);
+			var json = JsonHelper.ParseJson(jsonStr);
+
+			if (json == null || !json.Contains("deviceId")
+				|| !json.Contains("command") || !json.Contains("time"))
+			{
+				SendResponse(e.Context.Response, 400, "{\"error\":\"Missing fields\"}");
+				return;
+			}
+
+			string deviceId = json["deviceId"].ToString();
+			string command = json["command"].ToString();
+			string[] time = json["time"].ToString().Split(':');
+
+			int.TryParse(time[0], out int hours);
+			int.TryParse(time[1], out int minutes);
+
+			var entry = new ScheduleEntry { DeviceId = deviceId, Command = command,
+				TimeOfDay = new TimeSpan(hours, minutes, 0), IsActive = true };
+			_scheduleManager.AddSchedule(entry);
+			_scheduleManager.Start();
+			SendResponse(e.Context.Response, 200, "{\"success\":true}");
 		}
 
 		[Route("api/status/{id}")]
@@ -151,6 +187,29 @@ namespace Domovoy.Infrastructure.Web
 				response.Close();
 			}
 			//return null; //WebServer требует возврата строки, но мы уже отправили ответ
+		}
+
+		private string GetRequestBody(HttpListenerRequest request)
+		{
+			//получаю длину тела запроса
+			int contentLength = (int)request.ContentLength64;
+			if (contentLength <= 0) return null;
+
+			//открываю поток для чтения
+			byte[] buffer = new byte[contentLength];
+			using (var stream = request.InputStream)
+			{
+				//читаю данные в буфер
+				int offset = 0;
+				while (offset < contentLength)
+				{
+					int bytesRead = stream.Read(buffer, offset, contentLength - offset);
+					if (bytesRead <= 0) break;
+					offset += bytesRead;
+				}
+			}
+
+			return System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
 		}
 	}
 }

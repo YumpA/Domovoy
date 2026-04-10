@@ -16,7 +16,7 @@ namespace Infrastructure.Network
 
 			if (succes)
 			{
-				var ip=System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()[0].IPv4Address;
+				var ip = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()[0].IPv4Address;
 				Console.WriteLine($"✓ Подключено. IP адрес: {ip}");
 				return true;
 			}
