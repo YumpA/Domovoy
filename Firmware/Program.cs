@@ -145,6 +145,8 @@ namespace Domovoy.Firmware
 			_mqttService = new MqttService(_deviceService, config.Mqtt);
 			_deviceService = new DeviceService(_repository, _notificationService, devices, _mqttService);
 
+			StartWebServer();
+
 			if (_mqttService.Connect())
 			{
 				Console.WriteLine("MQTT service started.");
@@ -154,13 +156,8 @@ namespace Domovoy.Firmware
 				Console.WriteLine("Failed to start MQTT service.");
 			}
 
-
-			
-
 			Console.WriteLine("\n=== СИСТЕМА ГОТОВА ===");
-			PrintSystemStatus();
-
-			StartWebServer();
+			PrintSystemStatus();			
 		}
 
 		private static void SyncTime()

@@ -75,7 +75,7 @@ namespace Infrastructure.Configuration
 
 			return new AppConfig
 			{
-				Wifi = new WifiConfig { Ssid = "Intersvyaz_AB8E", Password = "34520291" },
+				Wifi = new WifiConfig { Ssid = "", Password = "" },
 				Mqtt = new MqttConfig(),
 				Devices = devices
 			};

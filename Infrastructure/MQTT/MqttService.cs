@@ -18,7 +18,7 @@ namespace Infrastructure.MQTT
 		private bool _disposed;
 
 		//параметры подключения, потом вынести в конфигурацию
-		private const string BrokerAddress = "test.mosquitto.org";
+		private const string BrokerAddress = "broker.hivemq.com";
 		private const int BrokerPort = 1883;
 		private const string ClientId = "DomovoyESP32";
 
