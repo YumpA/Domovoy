@@ -50,7 +50,6 @@ namespace Infrastructure.MQTT
 		{
 			try
 			{
-				Console.WriteLine($"Connecting to MQTT broker {BrokerAddress}:{BrokerPort}...");
 				var result = _client.Connect(ClientId);
 				if (result == MqttReasonCode.Success)
 				{

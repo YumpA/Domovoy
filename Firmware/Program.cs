@@ -38,11 +38,6 @@ namespace Domovoy.Firmware
 
 		public static void Main()
 		{
-			Console.WriteLine("\n╔══════════════════════════════╗");
-			Console.WriteLine("║     ДОМОВОЙ v0.2.2          ║");
-			Console.WriteLine("║   Многослойная архитектура  ║");
-			Console.WriteLine("╚══════════════════════════════╝\n");
-
 			try
 			{
 				InitializeSystem();
@@ -143,9 +138,7 @@ namespace Domovoy.Firmware
 
 			//MQTT
 			_mqttService = new MqttService(_deviceService, config.Mqtt);
-			_deviceService = new DeviceService(_repository, _notificationService, devices, _mqttService);
-
-			StartWebServer();
+			_deviceService = new DeviceService(_repository, _notificationService, devices, _mqttService);			
 
 			if (_mqttService.Connect())
 			{
@@ -157,7 +150,9 @@ namespace Domovoy.Firmware
 			}
 
 			Console.WriteLine("\n=== СИСТЕМА ГОТОВА ===");
-			PrintSystemStatus();			
+			PrintSystemStatus();
+
+			StartWebServer();
 		}
 
 		private static void SyncTime()
