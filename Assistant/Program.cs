@@ -117,7 +117,7 @@ namespace Assistant
 		{
 			var factory = new MqttFactory();
 			_mqttClient = factory.CreateMqttClient();
-			var options = new MqttClientOptionsBuilder().WithTcpServer("test.mosquitto.org", 1883).Build();
+			var options = new MqttClientOptionsBuilder().WithTcpServer("broker.hivemq.com", 1883).Build();
 
 			await _mqttClient.ConnectAsync(options);
 			Console.WriteLine("Подключено к MQTT брокеру.");

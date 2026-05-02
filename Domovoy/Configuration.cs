@@ -16,7 +16,7 @@ namespace Domovoy
 
 	public class MqttConfig
 	{
-		public string Broker { get; set; } = "test.mosquitto.org";
+		public string Broker { get; set; } = "broker.hivemq.com";
 		public int Port { get; set; } = 1883;
 		public string ClientId { get; set; } = "DomovoyESP32";
 		public bool UseTls { get; set; }
